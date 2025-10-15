@@ -25,6 +25,7 @@ use App\Models\User;
 use App\Models\RewardPoint;
 use App\Models\ScheduledDeliveryTimeList;
 use App\Notifications\OrderPlacedNotification;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Session;
 use Str;
@@ -103,6 +104,13 @@ class OrderController extends Controller
     {
         $user = auth()->user();
         $userId = $user->id;
+        $ordersId = auth()->user()->orders()->pluck('order_group_id');
+        $orders = OrderPayments::whereIn('ordergroup_id', $ordersId)->where("status", 'pending')->where('date_payment', '<', Carbon::now()->format('Y-m-d'));
+
+        if($orders->count() > 0){
+            return $this->order_failed(localize('Existen ordenes vencidas, no es posible crear la orden'));
+        }
+
         $carts  = Cart::where('user_id', $userId)->where('location_id', $request->header('Stock-Location-Id'))->get();
 
         if (count($carts) > 0) {
